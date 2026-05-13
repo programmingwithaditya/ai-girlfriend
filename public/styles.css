@@ -1,0 +1,42 @@
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.cursor::after {
+  content: '▋';
+  display: inline-block;
+  margin-left: 1px;
+  animation: blink 1s step-end infinite;
+  color: #f43f5e;
+}
+
+/* Use dynamic viewport height so the layout fits under the mobile address bar */
+.chat-height {
+  height: 100dvh;
+  height: 100vh; /* fallback for browsers without dvh */
+}
+
+@supports (height: 100dvh) {
+  .chat-height { height: 100dvh; }
+}
+
+/* Safe area padding for notched phones */
+.safe-top {
+  padding-top: max(0.75rem, env(safe-area-inset-top));
+}
+
+.safe-bottom {
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+}
+
+/* Prevent iOS from zooming in on the textarea when focused */
+.input-text {
+  font-size: 16px;
+}
+
+@media (min-width: 640px) {
+  .input-text {
+    font-size: 0.875rem; /* 14px — sm:text-sm equivalent */
+  }
+}
