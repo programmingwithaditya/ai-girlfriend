@@ -13,21 +13,39 @@ async function loadConfig() {
   avatarEl.textContent = name.charAt(0).toUpperCase();
 }
 
-function bubble(role, text = '') {
+function bubble(role, text = '', animate = false) {
   const wrap = document.createElement('div');
-  wrap.className = role === 'user'
-    ? 'flex justify-end'
-    : 'flex justify-start';
+  wrap.className = `flex ${animate ? 'msg-bubble' : ''} ${role === 'user' ? 'justify-end' : 'justify-start'}`;
 
   const box = document.createElement('div');
   box.className = role === 'user'
-    ? 'max-w-[75%] bg-rose-500 text-white rounded-2xl rounded-tr-sm px-4 py-2.5 text-sm whitespace-pre-wrap break-words'
-    : 'max-w-[75%] bg-zinc-800 text-zinc-100 rounded-2xl rounded-tl-sm px-4 py-2.5 text-sm whitespace-pre-wrap break-words';
+    ? 'max-w-[78%] user-bubble text-white rounded-2xl rounded-tr-sm px-4 py-2.5 text-sm whitespace-pre-wrap break-words'
+    : 'max-w-[78%] assistant-bubble text-zinc-100 rounded-2xl rounded-tl-sm px-4 py-2.5 text-sm whitespace-pre-wrap break-words';
 
   box.textContent = text;
   wrap.appendChild(box);
   messagesEl.appendChild(wrap);
   return box;
+}
+
+function showTyping() {
+  const wrap = document.createElement('div');
+  wrap.className = 'flex justify-start msg-bubble';
+  wrap.id = 'typing-indicator';
+
+  const box = document.createElement('div');
+  box.className = 'assistant-bubble rounded-2xl rounded-tl-sm px-4 py-3.5 flex gap-2 items-center';
+
+  for (let i = 0; i < 3; i++) {
+    const dot = document.createElement('span');
+    dot.className = 'typing-dot';
+    box.appendChild(dot);
+  }
+
+  wrap.appendChild(box);
+  messagesEl.appendChild(wrap);
+  scrollBottom();
+  return wrap;
 }
 
 function scrollBottom() {
@@ -54,12 +72,11 @@ async function sendMessage() {
   inputEl.style.height = 'auto';
   setEnabled(false);
 
-  bubble('user', text);
+  bubble('user', text, true);
   scrollBottom();
 
-  const assistantBox = bubble('assistant');
-  assistantBox.classList.add('cursor');
-  scrollBottom();
+  const typingEl = showTyping();
+  let assistantBox = null;
 
   try {
     const res = await fetch('/api/chat', {
@@ -87,18 +104,26 @@ async function sendMessage() {
         try {
           const token = JSON.parse(payload);
           if (typeof token === 'string') {
+            if (!assistantBox) {
+              typingEl.remove();
+              assistantBox = bubble('assistant', '', true);
+              assistantBox.classList.add('cursor');
+            }
             assistantBox.textContent += token;
             scrollBottom();
           }
         } catch {
-          // ignore
+          // ignore malformed chunk
         }
       }
     }
-  } catch (err) {
+  } catch {
+    if (typingEl.parentNode) typingEl.remove();
+    if (!assistantBox) assistantBox = bubble('assistant', '', true);
     assistantBox.textContent = '(connection error)';
   } finally {
-    assistantBox.classList.remove('cursor');
+    if (typingEl.parentNode) typingEl.remove();
+    if (assistantBox) assistantBox.classList.remove('cursor');
     setEnabled(true);
     inputEl.focus();
   }
